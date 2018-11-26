@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd">
+
+	<!-- 开启扫描 -->
+	<!-- <context:component-scan base-package="com.nc.service,com.nc.aop,com.nc.entity"> -->
+	<!-- <context:exclude-filter expression="org.springframework.stereotype.Controller" 
+		type="annotation" /> -->
+	<!-- </context:component-scan> -->
+	<!-- 开启AspectJ 注解支持 -->
+	<!-- <aop:aspectj-autoproxy/> -->
+	
+	<!-- spring task 开启注解配置 -->
+ 	<task:annotation-driven mode="proxy" scheduler="scheduler" executor="executor"/>
+ 	<!-- 调度工程,可选 -->
+	<task:scheduler id="scheduler"  pool-size="10"/>
+	<!-- 线程池,可选 -->
+	<task:executor id="executor" keep-alive="1" pool-size="10"/>
+	
+	
+	<task:scheduled-tasks>
+		<!-- 每隔2秒调度一次 -->
+		<!-- <task:scheduled ref="testQuartZ" method="testerTask"   fixed-rate="2000"/> -->
+		<!-- 每天16:00调度一次 -->
+		<task:scheduled ref="testQuartZ" method="testerTask"   cron="0 0 16 * * ?"/>
+	</task:scheduled-tasks>
+	
+	
+
+	<bean id="testQuartZ" class="com.nc.util.MybatisUtil"></bean>
+
+	<!-- 配置作业类 -->
+	<bean id="job1"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject">
+			<ref bean="testQuartZ" />
+		</property>
+		<property name="targetMethod">
+			<value>testQuartz</value>
+		</property>
+	</bean>
+
+	<!-- 配置作业调度的触发方式（触发器） -->
+	<!-- 每隔一段时间，调度一次 -->
+	<bean id="simpleTriggerFactoryBean"
+		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+		<!-- 需要调度的任务 -->
+		<property name="jobDetail" ref="job1"></property>
+		<!-- 调度工厂实例化后，经过0秒开始执行调度 -->
+		<property name="startDelay" value="0"></property>
+		<!-- 每10秒调度一次，单位毫秒ms -->
+		<property name="repeatInterval" value="10000"></property>
+	</bean>
+
+	<!-- 配置调度工厂 -->
+	<!-- 每到特定的时间，调度一次 -->
+	<bean id="cronTriggerFactoryBean"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<!-- 需要调度的任务 -->
+		<property name="jobDetail" ref="job1"></property>
+		<!-- 调度工厂实例化后，经过0秒开始执行调度 -->
+		<property name="startDelay" value="0"></property>
+		<!-- 每天的15:25分调度一次 -->
+		<property name="cronExpression" >
+			<value>0 30 15 * * ?</value>
+		</property>
+	</bean>
+
+	<!-- 配置调度工厂 -->
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="simpleTriggerFactoryBean" />
+				<ref bean="cronTriggerFactoryBean"/>
+			</list>
+		</property>
+	</bean>
+
+</beans>
